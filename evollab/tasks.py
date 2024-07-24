@@ -158,7 +158,7 @@ async def evaluate_method(
     num_failures: int = 0
     for i, instr in enumerate(instructions):
         click.echo(f"evaluating over instruction {i + 1}/{len(instructions)}")
-        trajectory = await commands.evolve(method, instr, steps=1)
+        trajectory = await commands.evolve(instr, steps=1, method=method)
         for evol_instr in trajectory.evolution:
             response = await commands.answer(evol_instr, args)
             # answer = await llm.evol.ainvoke(evol_instr)
@@ -188,7 +188,7 @@ async def evolve_batch(
     reports: list[EvolReport] = []
     for i, instr in enumerate(instructions):
         click.echo(f"evolving over instruction {i + 1}/{len(instructions)}")
-        trajectory = await commands.evolve(method, instr, steps=total_evol_steps)
+        trajectory = await commands.evolve(instr, steps=total_evol_steps, method=method)
         click.echo(f"analyzing over instruction {i + 1}/{len(instructions)}")
         feedback = await analyze(trajectory)
         report = EvolReport(trajectory, feedback)

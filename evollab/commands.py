@@ -59,7 +59,12 @@ def extract_steps_headers(text: str) -> list[str]:
     return re.findall(r"^Step\s*\d*\s\#[\w\s]*\#", text, re.MULTILINE)
 
 
-async def evolve(method: Method, instruction: str, steps: int = 1) -> Trajectory:
+async def evolve(
+    instruction: str,
+    steps: int = 1,
+    method: Method = Method(prompts.initial_method),
+    args: LLMArgs = LLMArgs.default(),
+) -> Trajectory:
     """Evolve instruction multiple times over a method.
 
     Args:
@@ -82,16 +87,11 @@ async def evolve(method: Method, instruction: str, steps: int = 1) -> Trajectory
     # the `n` parameter doesn't apply here
     for _ in range(steps):
         async for instr in autochain(
-            model="microsoft/wizardlm-2-8x22b",
             messages=prompts.evolve.format(
                 instruction=instruction,
                 method=method,
             ),
-            output_format="text",
-            temperature=0.3,
-            top_p=0.95,
-            seed=47,
-            n=1,
+            **args.__dict__,
         ):
             # post-process instruction if steps headers are present
             if steps_headers := extract_steps_headers(instr):

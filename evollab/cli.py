@@ -17,16 +17,6 @@ def in_asyncio_run(f):
     return wrapper
 
 
-# def load_instructions(dataset_path) -> list[str]:
-#     # Path("./evollab/alpaca_eval.json")
-#     dataset = json.loads(dataset_path.read_text())
-#     dataset = [d for d in dataset if d["dataset"] == "oasst"]
-#     dataset = [d["instruction"] for d in dataset]
-#     logger.info(f"loaded {len(dataset)} instructions")
-#     return dataset
-#     # from datasets import load_dataset
-
-
 spinner_settings: dict[str, Any] = {
     "text": "Loading...",
     "color": "yellow",
@@ -88,12 +78,12 @@ def cli(ctx, model, output_format, temperature, top_p, seed, n, silent):
     )
 
 
-async def run_simple_task(ctx: click.Context, task: Callable, text: str) -> None:
+async def run_simple_task(ctx: click.Context, task: Callable, text: str) -> Any:
     args = ctx.obj.get("args", models.LLMArgs.default())
     silent = ctx.obj.get("silent", True)
     with halo.Halo(**spinner_settings, enabled=not silent):
         result = await task(text, args=args)
-    print(result)
+    return result
 
 
 def parse_text_arg(text: str | None = None) -> str:
@@ -116,11 +106,12 @@ def parse_text_arg(text: str | None = None) -> str:
 @in_asyncio_run
 async def augment(ctx: click.Context, text: str | None = None) -> None:
     """Augment, by filling missing info or entities, to provided text."""
-    await run_simple_task(
+    result = await run_simple_task(
         ctx,
         commands.augment,
         parse_text_arg(text),
     )
+    click.echo(result)
 
 
 @cli.command()
@@ -129,11 +120,12 @@ async def augment(ctx: click.Context, text: str | None = None) -> None:
 @in_asyncio_run
 async def derive(ctx: click.Context, text: str | None = None) -> None:
     """Derive an instruction from a provided text."""
-    await run_simple_task(
+    result = await run_simple_task(
         ctx,
         commands.derive,
         parse_text_arg(text),
     )
+    click.echo(result)
 
 
 @cli.command()
@@ -142,42 +134,27 @@ async def derive(ctx: click.Context, text: str | None = None) -> None:
 @in_asyncio_run
 async def answer(ctx: click.Context, text: str | None) -> None:
     """Answer a question from a provided text."""
-    await run_simple_task(
+    result = await run_simple_task(
         ctx,
         commands.answer,
         parse_text_arg(text),
     )
+    click.echo(result)
 
 
 @cli.command()
 @click.pass_context
 @click.argument("text", required=False)
-@click.option("--method", default="")
-@click.option("--steps", default=1)
 @in_asyncio_run
-async def evolve(
-    ctx: click.Context,
-    text: str | None = None,
-    method: str = "",
-    steps: int = 1,
-):
+async def evolve(ctx: click.Context, text: str | None = None):
     """Evolve an instruction using a method."""
-    if not method:
-        method = prompts.initial_method
-
-    elif Path(method).exists() and Path(method).is_file():
-        method = Path(method).read_text().strip()
-
-    silent = ctx.obj.get("silent", True)
-    with halo.Halo(**spinner_settings, enabled=not silent):
-        trajectory = await commands.evolve(
-            method=models.Method(method),
-            instruction=parse_text_arg(text),
-            steps=steps,
-        )
-
-    for step in trajectory.steps:
-        print(step)
+    result = await run_simple_task(
+        ctx,
+        commands.evolve,
+        parse_text_arg(text),
+    )
+    for step in result.steps:
+        click.echo(step)
 
 
 if __name__ == "__main__":
