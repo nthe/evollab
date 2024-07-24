@@ -169,9 +169,12 @@ async def classify(text: str, classes: list[str], args: LLMArgs) -> list[str]:
     Returns:
         list[str]: List of classes the text belongs to.
     """
-    # async for answer in autochain(
-    #     messages=prompts.classify.format(text=text),
-    #     **args.__dict__,
-    # ):
-    #     return answer
+    async for answer in autochain(
+        messages=prompts.classify.format(
+            text=text,
+            classes="\n".join(classes),
+        ),
+        **args.__dict__,
+    ):
+        return answer
     return [""]

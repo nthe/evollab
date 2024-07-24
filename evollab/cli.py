@@ -78,11 +78,11 @@ def cli(ctx, model, output_format, temperature, top_p, seed, n, silent):
     )
 
 
-async def run_simple_task(ctx: click.Context, task: Callable, text: str) -> Any:
-    args = ctx.obj.get("args", models.LLMArgs.default())
+async def run_simple_task(ctx: click.Context, task: Callable, text: str, *args) -> Any:
+    llm_args = ctx.obj.get("args", models.LLMArgs.default())
     silent = ctx.obj.get("silent", True)
     with halo.Halo(**spinner_settings, enabled=not silent):
-        result = await task(text, args=args)
+        result = await task(text, *args, args=llm_args)
     return result
 
 
@@ -110,6 +110,26 @@ async def augment(ctx: click.Context, text: str | None = None) -> None:
         ctx,
         commands.augment,
         parse_text_arg(text),
+    )
+    click.echo(result)
+
+
+@cli.command()
+@click.pass_context
+@click.argument("text", required=False)
+@click.option("-c", "--classes", multiple=True)
+@in_asyncio_run
+async def classify(
+    ctx: click.Context,
+    text: str | None = None,
+    classes: tuple[str] | None = None,
+) -> None:
+    """Classify a provided text."""
+    result = await run_simple_task(
+        ctx,
+        commands.classify,
+        parse_text_arg(text),
+        classes,
     )
     click.echo(result)
 
